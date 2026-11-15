@@ -16,25 +16,39 @@ final class HotkeyField: NSView {
     override var acceptsFirstResponder: Bool { true }
     override var isFlipped: Bool { true }
 
-    override var intrinsicContentSize: NSSize { NSSize(width: 180, height: 26) }
+    override var intrinsicContentSize: NSSize { NSSize(width: 180, height: 28) }
 
     override func draw(_ dirtyRect: NSRect) {
-        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 5, yRadius: 5)
-        NSColor.controlBackgroundColor.setFill()
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.75, dy: 0.75), xRadius: 8, yRadius: 8)
+        (dark ? NSColor.white.withAlphaComponent(0.06)
+              : NSColor.labelColor.withAlphaComponent(0.045)).setFill()
         path.fill()
-        (isInvalid ? NSColor.systemRed : NSColor.separatorColor).setStroke()
-        path.lineWidth = editing ? 2 : 1
+
+        if isInvalid {
+            NSColor.systemRed.setStroke()
+            path.lineWidth = 1.6
+        } else if editing {
+            NSColor.controlAccentColor.setStroke()
+            path.lineWidth = 1.6
+        } else {
+            (dark ? NSColor.white.withAlphaComponent(0.09)
+                  : NSColor.separatorColor.withAlphaComponent(0.22)).setStroke()
+            path.lineWidth = 1
+        }
         path.stroke()
 
         let text = editing ? "按下快捷键…" : binding.displayText
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 12),
+            .font: NSFont.systemFont(ofSize: 13),
             .foregroundColor: editing ? NSColor.secondaryLabelColor : NSColor.labelColor
         ]
         let size = (text as NSString).size(withAttributes: attributes)
-        (text as NSString).draw(at: NSPoint(x: 8, y: (bounds.height - size.height) / 2),
+        (text as NSString).draw(at: NSPoint(x: 10, y: (bounds.height - size.height) / 2),
                                 withAttributes: attributes)
     }
+
+    override func viewDidChangeEffectiveAppearance() { needsDisplay = true }
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)

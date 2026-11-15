@@ -56,7 +56,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         addItem("截图翻译", shortcut: settings.translationHotkey, action: #selector(startTranslation))
         menu.addItem(.separator())
 
-        addItem("首选项…", shortcut: .init(key: ",", modifiers: [.command]),
+        addItem("设置…", shortcut: .init(key: ",", modifiers: [.command]),
                 action: #selector(showPreferences))
         addItem("关于 \(AppInfo.name)", action: #selector(showAbout))
         addItem("打开日志", action: #selector(openLog))
@@ -114,8 +114,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func pinHistoryItem(_ sender: NSMenuItem) {
         let items = CaptureHistory.shared.items
-        guard sender.tag >= 0, sender.tag < items.count else { return }
-        let image = items[sender.tag].image
+        guard sender.tag >= 0, sender.tag < items.count,
+              let image = items[sender.tag].makeImage() else { return }
         Task { @MainActor in
             let mouse = NSEvent.mouseLocation
             PinController.shared.pin(image: image, topLeft: NSPoint(x: mouse.x - 40, y: mouse.y + 40))
