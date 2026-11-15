@@ -16,7 +16,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             HotkeyCenter.shared.apply(settings)
         }
 
-        // 调试入口：`open SnipLite.app --args --capture`
+        // 调试入口：`open SnipLite.app --args --capture` / `--prefs`
+        if CommandLine.arguments.contains("--prefs") {
+            Task { @MainActor in
+                PreferencesWindowController.shared.show()
+            }
+        }
         if CommandLine.arguments.contains("--capture") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 CaptureSession.start(mode: .capture)
