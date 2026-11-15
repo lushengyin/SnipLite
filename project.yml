@@ -1,0 +1,86 @@
+name: SnipLite
+options:
+  bundleIdPrefix: com.sniplite
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "SnipLite Local Signing"
+    OTHER_CODE_SIGN_FLAGS: "--keychain $(HOME)/Library/Keychains/sniplite-signing.keychain-db"
+    ENABLE_HARDENED_RUNTIME: NO
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.4.0"
+
+targets:
+  SnipLiteCore:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/SnipLiteCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sniplite.core
+        DEFINES_MODULE: YES
+        SKIP_INSTALL: YES
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: SnipLiteCore
+        INFOPLIST_KEY_NSHumanReadableCopyright: MIT License
+
+  SnipLite:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/SnipLite
+      - path: Sources/SnipLite/Resources
+        buildPhase: resources
+    dependencies:
+      - target: SnipLiteCore
+    info:
+      path: Sources/SnipLite/Info.plist
+      properties:
+        CFBundleDisplayName: SnipLite
+        CFBundleName: SnipLite
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSMinimumSystemVersion: "15.0"
+        NSHumanReadableCopyright: MIT License
+        NSPrincipalClass: NSApplication
+        CFBundleIconFile: AppIcon
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sniplite.app
+
+  SnipLiteCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/SnipLiteCoreTests
+    dependencies:
+      - target: SnipLiteCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sniplite.core.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  SnipLite:
+    build:
+      targets:
+        SnipLite: all
+    run:
+      config: Debug
+  SnipLiteCore:
+    build:
+      targets:
+        SnipLiteCore: all
+        SnipLiteCoreTests: [test]
+    test:
+      config: Debug
+      targets:
+        - SnipLiteCoreTests
