@@ -17,9 +17,11 @@ xcodebuild -project SnipLite.xcodeproj -scheme SnipLite -configuration Release b
   exit 1
 }
 
-APP=$(find "$HOME/Library/Developer/Xcode/DerivedData" -maxdepth 6 -name "SnipLite.app" -path "*Release*" | head -1)
-if [ -z "$APP" ]; then
-  echo "找不到 Release 产物"
+APP=$(xcodebuild -project SnipLite.xcodeproj -scheme SnipLite -configuration Release \
+  -showBuildSettings 2>/dev/null \
+  | awk -F' = ' '/ TARGET_BUILD_DIR /{dir=$2} / FULL_PRODUCT_NAME /{name=$2} END{print dir "/" name}')
+if [ ! -d "$APP" ]; then
+  echo "找不到 Release 产物：$APP"
   exit 1
 fi
 
