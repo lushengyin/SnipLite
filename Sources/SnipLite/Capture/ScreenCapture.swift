@@ -50,32 +50,8 @@ enum ScreenCaptureService {
             throw ScreenCaptureError.unavailable(error.localizedDescription)
         }
 
-        var images: [UInt32: CGImage] = [:]
-        for screen in geometry.screens {
-            guard let display = content.displays.first(where: { $0.displayID == screen.displayID }) else { continue }
-            let filter = SCContentFilter(display: display, excludingWindows: [])
-            let configuration = SCStreamConfiguration()
-            configuration.width = display.width
-            configuration.height = display.height
-            configuration.showsCursor = settings.captureCursor
-            configuration.captureResolution = .best
-            do {
-                images[screen.displayID] = try await SCScreenshotManager.captureImage(
-                    contentFilter: filter,
-                    configuration: configuration
-                )
-            } catch {
-                throw ScreenCaptureError.unavailable(error.localizedDescription)
-            }
-        }
-
-        guard let canvas = compose(images: images, geometry: geometry) else {
-            throw ScreenCaptureError.unavailable("合成画布失败")
-        }
-        return CapturedDesktop(image: canvas, geometry: geometry, scale: geometry.canvasScale)
-    }
-
-    private static func compose(images: [UInt32: CGImage], geometry: ScreenGeometry) -> CGImage? {
+        // 边抓边画进画布：不再把所有屏幕的位图同时留在内存里，
+        // 两块 4K 屏能省下一整屏的副本。
         let scale = geometry.canvasScale
         let width = Int((geometry.union.width * scale).rounded(.up))
         let height = Int((geometry.union.height * scale).rounded(.up))
@@ -88,15 +64,31 @@ enum ScreenCaptureService {
                                       bytesPerRow: 0,
                                       space: space,
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-            return nil
+            throw ScreenCaptureError.unavailable("创建画布失败")
         }
-
         context.setFillColor(NSColor.black.cgColor)
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         context.interpolationQuality = .none
 
         for screen in geometry.screens {
-            guard let image = images[screen.displayID] else { continue }
+            guard let display = content.displays.first(where: { $0.displayID == screen.displayID }) else { continue }
+            let filter = SCContentFilter(display: display, excludingWindows: [])
+            let configuration = SCStreamConfiguration()
+            // display.width/height 是逻辑点数，按 1:1 抓会得到半分辨率内容，
+            // 再合成到 2x 画布就会被放大变糊。用 pointPixelScale 抓原生像素。
+            let pixelScale = CGFloat(filter.pointPixelScale)
+            configuration.width = Int((filter.contentRect.width * pixelScale).rounded())
+            configuration.height = Int((filter.contentRect.height * pixelScale).rounded())
+            configuration.showsCursor = settings.captureCursor
+            let image: CGImage
+            do {
+                image = try await SCScreenshotManager.captureImage(
+                    contentFilter: filter,
+                    configuration: configuration
+                )
+            } catch {
+                throw ScreenCaptureError.unavailable(error.localizedDescription)
+            }
             // 模型坐标是左上原点，CGContext 是左下原点。
             let rect = CGRect(
                 x: screen.frame.minX * scale,
@@ -107,6 +99,9 @@ enum ScreenCaptureService {
             context.draw(image, in: rect)
         }
 
-        return context.makeImage()
+        guard let canvas = context.makeImage() else {
+            throw ScreenCaptureError.unavailable("合成画布失败")
+        }
+        return CapturedDesktop(image: canvas, geometry: geometry, scale: scale)
     }
 }

@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import ImageIO
 import SnipLiteCore
+import UniformTypeIdentifiers
 
 enum OutputService {
     /// 从剪贴板取图：PNG → TIFF → 文件 URL。
@@ -25,20 +26,26 @@ enum OutputService {
 
     @discardableResult
     static func copyToPasteboard(_ image: CGImage) -> Bool {
-        let rep = NSBitmapImageRep(cgImage: image)
-        guard let png = rep.representation(using: .png, properties: [:]) else { return false }
+        // 走 ImageIO 直接编码，避免 NSBitmapImageRep 再复制一份完整位图。
+        guard let png = pngData(image) else { return false }
         let item = NSPasteboardItem()
+        // 只放 PNG：再放一份未压缩 TIFF 会让剪贴板多占几十 MB。
         item.setData(png, forType: .png)
-        if let tiff = rep.representation(using: .tiff, properties: [:]) {
-            item.setData(tiff, forType: .tiff)
-        }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         return pasteboard.writeObjects([item])
     }
 
     static func pngData(_ image: CGImage) -> Data? {
-        NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+        let buffer = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            buffer, UTType.png.identifier as CFString, 1, nil
+        ) else {
+            return nil
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return buffer as Data
     }
 
     static func write(_ image: CGImage, to url: URL, jpegQuality: Int) throws {

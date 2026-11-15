@@ -7,9 +7,6 @@ final class SelectionView: NSView {
     private let screen: ScreenInfo
     private var trackingArea: NSTrackingArea?
 
-    private lazy var frozenImage = NSImage(cgImage: session.capturedImage,
-                                           size: session.geometry.union.size)
-
     private let accent = NSColor(srgbRed: 0, green: 0.5686, blue: 0.9176, alpha: 1)
 
     init(session: CaptureSession, screen: ScreenInfo) {
@@ -51,33 +48,45 @@ final class SelectionView: NSView {
                                  y: -screen.frame.minY,
                                  width: union.width,
                                  height: union.height)
-        frozenImage.draw(in: destination,
-                         from: .zero,
-                         operation: .copy,
-                         fraction: 1,
-                         respectFlipped: true,
-                         hints: [.interpolation: NSImageInterpolation.none])
+        drawCanvasImage(session.capturedImage, in: destination,
+                        interpolation: .none, blend: .copy)
+    }
+
+    /// 在 flipped 视图里绘制整幅画布图像，坐标用视图本地坐标（左上原点）。
+    private func drawCanvasImage(_ image: CGImage, in destination: NSRect,
+                                 interpolation: CGInterpolationQuality,
+                                 fraction: CGFloat = 1,
+                                 blend: CGBlendMode = .normal) {
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+        context.saveGState()
+        context.interpolationQuality = interpolation
+        context.setAlpha(fraction)
+        context.setBlendMode(blend)
+        context.translateBy(x: 0, y: bounds.height)
+        context.scaleBy(x: 1, y: -1)
+        let flipped = CGRect(x: destination.minX,
+                             y: bounds.height - destination.maxY,
+                             width: destination.width,
+                             height: destination.height)
+        context.draw(image, in: flipped)
+        context.restoreGState()
     }
 
     private func drawTranslationLayer() {
         guard !session.showOriginal,
               let layer = session.translationLayer,
               let selection = session.selection else { return }
-        let image = NSImage(cgImage: layer, size: selection.size)
-        image.draw(in: localRect(selection), from: .zero, operation: .sourceOver, fraction: 1,
-                   respectFlipped: true,
-                   hints: [.interpolation: NSImageInterpolation.high])
+        drawCanvasImage(layer, in: localRect(selection),
+                        interpolation: .high, blend: .normal)
     }
 
     private func drawAnnotationLayer() {
         guard let layer = session.annotationLayerImage() else { return }
         let union = session.geometry.union
-        let image = NSImage(cgImage: layer, size: union.size)
-        image.draw(in: NSRect(x: -screen.frame.minX, y: -screen.frame.minY,
-                              width: union.width, height: union.height),
-                   from: .zero, operation: .sourceOver, fraction: 1,
-                   respectFlipped: true,
-                   hints: [.interpolation: NSImageInterpolation.none])
+        drawCanvasImage(layer,
+                        in: NSRect(x: -screen.frame.minX, y: -screen.frame.minY,
+                                   width: union.width, height: union.height),
+                        interpolation: .none, blend: .normal)
     }
 
     private func drawMask() {
@@ -181,10 +190,11 @@ final class SelectionView: NSView {
 
         let sourceTopLeft = CGRect(x: point.x - sourceHalf, y: point.y - sourceHalf,
                                    width: sourceHalf * 2, height: sourceHalf * 2)
-        let source = CGRect(x: sourceTopLeft.minX,
-                            y: session.geometry.union.height - sourceTopLeft.maxY,
-                            width: sourceTopLeft.width,
-                            height: sourceTopLeft.height)
+        let scale = session.geometry.canvasScale
+        let sourcePixels = CGRect(x: sourceTopLeft.minX * scale,
+                                  y: sourceTopLeft.minY * scale,
+                                  width: sourceTopLeft.width * scale,
+                                  height: sourceTopLeft.height * scale).integral
 
         NSGraphicsContext.current?.saveGraphicsState()
         defer { NSGraphicsContext.current?.restoreGraphicsState() }
@@ -192,9 +202,9 @@ final class SelectionView: NSView {
         NSBezierPath(rect: destination).addClip()
         NSColor.black.setFill()
         destination.fill()
-        frozenImage.draw(in: destination, from: source, operation: .copy, fraction: 1,
-                         respectFlipped: true,
-                         hints: [.interpolation: NSImageInterpolation.none])
+        if let cropped = session.capturedImage.cropping(to: sourcePixels) {
+            drawCanvasImage(cropped, in: destination, interpolation: .none, blend: .copy)
+        }
 
         let border = NSBezierPath(rect: destination.insetBy(dx: 0.5, dy: 0.5))
         border.lineWidth = 1

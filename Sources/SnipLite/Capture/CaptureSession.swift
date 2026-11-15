@@ -260,7 +260,8 @@ final class CaptureSession {
         case .save:
             saveAs()
         case .copy:
-            perform(.copy, exit: false)        case .width:
+            perform(.copy, exit: true)
+        case .width:
             let widths: [CGFloat] = [2, 3, 4, 6, 8, 12, 16, 24]
             let index = widths.firstIndex(of: lineWidth) ?? 0
             lineWidth = widths[(index + 1) % widths.count]
@@ -554,7 +555,8 @@ final class CaptureSession {
     func keyDown(_ event: NSEvent) -> Bool {
         guard !didFinish else { return false }
         if textEditing != nil { return false }
-        AppLog.shared.write("keyDown code=\(event.keyCode) chars=\(event.charactersIgnoringModifiers ?? "-")", level: .debug)
+        let sourcePID = event.cgEvent?.getIntegerValueField(.eventSourceUnixProcessID) ?? -1
+        AppLog.shared.write("keyDown code=\(event.keyCode) chars=\(event.charactersIgnoringModifiers ?? "-") flags=\(event.modifierFlags.rawValue) src=\(sourcePID)", level: .debug)
 
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
@@ -564,6 +566,9 @@ final class CaptureSession {
                 if flags.contains(.shift) { redo() } else { undo() }
                 return true
             case "c":
+                // 选区刚完成时，划词翻译 / 剪贴板工具会自行注入 ⌘C 抓取选中文本，
+                // 不能当成用户主动复制截图。
+                if Date().timeIntervalSince(selectionCreatedAt) < 0.35 { return true }
                 if copyableResult != nil { copyResult() } else { perform(.copy, exit: false) }
                 return true
             case "s":
@@ -1077,7 +1082,7 @@ final class CaptureSession {
         switch action {
         case .copy:
             if OutputService.copyToPasteboard(image) {
-                Toast.show("已复制到剪贴板，可继续编辑（Esc 退出）")
+                Toast.show(exit ? "已复制到剪贴板" : "已复制到剪贴板，可继续编辑（Esc 退出）")
             } else {
                 Toast.show("复制失败")
             }

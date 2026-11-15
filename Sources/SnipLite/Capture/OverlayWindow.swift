@@ -6,8 +6,8 @@ final class OverlayWindow: NSWindow {
 
     init(frame: NSRect) {
         super.init(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
-        isOpaque = false
-        backgroundColor = .clear
+        isOpaque = true
+        backgroundColor = .black
         hasShadow = false
         level = .screenSaver
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
