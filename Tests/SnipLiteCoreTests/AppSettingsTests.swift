@@ -111,7 +111,7 @@ final class FileNamePatternTests: XCTestCase {
 
     func testEmptyPatternFallsBack() {
         XCTAssertEqual(FileNamePattern.expand("", date: date), "SnipLite")
-        // 与原版一致：非法字符替换成下划线，替换结果非空就不再回退。
+        // 非法字符替换成下划线；替换结果非空就不再回退。
         XCTAssertEqual(FileNamePattern.expand("///", date: date), "___")
     }
 

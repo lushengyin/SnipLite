@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-/// 会话内截图历史（内存，不落盘），对应 Windows 版 CaptureHistory。
+/// 会话内截图历史（内存，不落盘）。
 public final class CaptureHistory {
     public static let shared = CaptureHistory()
 

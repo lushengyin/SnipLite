@@ -1,6 +1,6 @@
 import Foundation
 
-/// 文件名模板展开，行为对齐 Windows 版 AppSettings：
+/// 文件名模板展开：
 /// 支持 `$yyyy-MM-dd_HH-mm-ss$`、`$yyyy$`、`$MM$`（月）、`$dd$`、`$HH$`、`$mm$`（分）、`$ss$`。
 /// 结果为空时回退 "SnipLite"。
 public enum FileNamePattern {
@@ -30,7 +30,7 @@ public enum FileNamePattern {
         return result.isEmpty ? "SnipLite" : result
     }
 
-    /// 对齐原版的非法字符处理；macOS 上额外允许 `/` 之外的大多数字符，但保持与 Windows 一致更可预期。
+    /// 非法文件名字符统一替换为下划线，避免生成不可用的文件名。
     public static func sanitize(_ name: String) -> String {
         let illegal = CharacterSet(charactersIn: "\\/:*?\"<>|")
         return name

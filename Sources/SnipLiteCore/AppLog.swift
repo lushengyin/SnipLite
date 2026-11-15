@@ -16,7 +16,7 @@ public enum LogLevel: String, Codable, CaseIterable, Sendable {
     }
 }
 
-/// 对应 Windows 版 AppLog：单文件日志，超过 2MB 轮转成 .old。
+/// 单文件日志，超过 2MB 轮转成 .old。
 public final class AppLog {
     public static let shared = AppLog()
 

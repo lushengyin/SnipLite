@@ -1,6 +1,6 @@
 # SnipLite macOS
 
-原生 Swift + AppKit 的 macOS 版本。移植方案与阶段划分见 [docs/PORT_PLAN.md](docs/PORT_PLAN.md)。
+原生 Swift + AppKit 的 macOS 截图工具。
 
 当前进度：**核心功能完成**——截图、标注、OCR 划词与结果面板、二维码、四家翻译（原位覆盖）、贴图（分组/穿透/拖出）、首选项、历史均已接通；待办只剩 Developer ID 签名与公证。
 

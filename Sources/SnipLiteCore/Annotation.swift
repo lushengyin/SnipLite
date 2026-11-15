@@ -67,7 +67,7 @@ public enum ToolKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
-    /// 与 Windows 版一致：普通 3、马克笔 24、马赛克/橡皮 28。
+    /// 默认线宽：普通 3、马克笔 24、马赛克/橡皮 28。
     public var defaultWidth: CGFloat {
         switch self {
         case .marker: return 24

@@ -56,7 +56,7 @@ public struct HotkeyBinding: Codable, Equatable, Hashable, Sendable {
     }
 }
 
-/// 截图结束动作，对应原版 EnterAction / MiddleClickAction / DoubleClickAction。
+/// 截图结束动作（Enter / 中键 / 双击）。
 public enum CaptureAction: String, Codable, CaseIterable, Sendable {
     case copy
     case pin
@@ -207,7 +207,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         case saveDirectory, quickSaveDirectory, autoSave, fileNamePattern, jpegQuality
     }
 
-    /// 缺失字段一律回退默认值——Windows 版也是这样容忍旧配置的。
+    /// 缺失字段一律回退默认值，兼容旧版本配置文件。
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = AppSettings()

@@ -93,7 +93,7 @@ struct AnnotationBarLayout {
             row2Width = max(row2Width, x2 - gap + padding)
         }
 
-        // 调色板只在选中工具时出现；橡皮/马赛克不显示（与原版一致）
+        // 调色板只在选中工具时出现；橡皮/马赛克不显示
         let showPalette = tool != nil && tool != .eraser && tool != .mosaic
         if showPalette {
             var paletteX = padding

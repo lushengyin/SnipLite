@@ -1,6 +1,6 @@
 import Foundation
 
-/// 加载/保存设置，行为对齐 Windows 版：
+/// 加载/保存设置：
 /// - 文件损坏静默回退默认值
 /// - AutoBackup 时先复制 .bak
 /// - 先写 .tmp 再原子替换
@@ -29,7 +29,7 @@ public final class SettingsStore {
         settings = load()
     }
 
-    /// 改完即存盘并广播，对应原版"修改即时保存，没有确定/取消"。
+    /// 改完即存盘并广播（即时保存，没有确定/取消）。
     public func update(_ mutate: (inout AppSettings) -> Void) {
         var copy = settings
         mutate(&copy)
