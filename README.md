@@ -18,7 +18,7 @@
 
 ## 安装
 
-1. 下载 `SnipLite-x.y.z.dmg`，双击打开
+1. 到 [Releases](https://github.com/lushengyin/SnipLite/releases) 下载 `SnipLite-x.y.z.dmg`，双击打开
 2. 把 SnipLite 拖到 Applications
 3. 首次截图时按系统提示授予**屏幕录制**权限；窗口检测和全局快捷键需要**辅助功能**权限
 4. 应用未做 Apple 公证，首次打开若被拦截：右键 →「打开」，或到「系统设置 → 隐私与安全性」里点「仍要打开」
