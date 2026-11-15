@@ -254,7 +254,7 @@ final class CaptureSession {
         case .redo:
             redo()
         case .close:
-            cancel()
+            closeCapture()
         case .pin:
             perform(.pin, exit: true)
         case .save:
@@ -607,6 +607,13 @@ final class CaptureSession {
         default: return false
         }
         return true
+    }
+
+    /// 工具栏关闭：结束正在进行的文字编辑并直接关闭截图，不再需要点两次。
+    func closeCapture() {
+        guard !didFinish else { return }
+        if textEditing != nil { cancelText() }
+        cancel()
     }
 
     func cancel() {
