@@ -1186,6 +1186,8 @@ private extension CGRect {
 
 extension CaptureSession {
     var editingTextLength: Int { (textEditing?.text ?? "").utf16.count }
+    /// 是否有输入法组合中的文字（拼音等未上屏内容）。
+    var isComposingText: Bool { !(textEditing?.marked.isEmpty ?? true) }
 
     func appendText(_ text: String) {
         guard var editing = textEditing else { return }

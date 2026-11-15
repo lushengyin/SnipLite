@@ -8,6 +8,7 @@ final class SelectionView: NSView {
     private var trackingArea: NSTrackingArea?
 
     private let accent = NSColor(srgbRed: 0, green: 0.5686, blue: 0.9176, alpha: 1)
+    private lazy var textInputContext = NSTextInputContext(client: self)
 
     init(session: CaptureSession, screen: ScreenInfo) {
         self.session = session
@@ -20,6 +21,8 @@ final class SelectionView: NSView {
     }
 
     override var isFlipped: Bool { true }
+
+    override var inputContext: NSTextInputContext? { textInputContext }
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
@@ -524,6 +527,9 @@ final class SelectionView: NSView {
             return
         }
         session.mouseDown(at: point, clickCount: event.clickCount)
+        if session.textEditing != nil {
+            _ = textInputContext.activate()
+        }
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -564,15 +570,22 @@ final class SelectionView: NSView {
 
     override func keyDown(with event: NSEvent) {
         if session.textEditing != nil {
+            AppLog.shared.write("text keyDown code=\(event.keyCode) chars=\(event.charactersIgnoringModifiers ?? "-") flags=\(event.modifierFlags.rawValue)", level: .debug)
+            // 输入法正在组合拼音/候选时，删除、回车、Esc 要交给输入法处理
+            if session.isComposingText, textInputContext.handleEvent(event) { return }
             switch event.keyCode {
             case 53:
                 session.cancelText()
+                textInputContext.deactivate()
             case 36, 76:
                 session.commitText()
+                textInputContext.deactivate()
             case 51:
                 session.deleteBackwardText()
             default:
-                interpretKeyEvents([event])
+                if !textInputContext.handleEvent(event) {
+                    interpretKeyEvents([event])
+                }
             }
             return
         }
@@ -608,6 +621,7 @@ final class SelectionView: NSView {
 extension SelectionView: NSTextInputClient {
     func insertText(_ string: Any, replacementRange: NSRange) {
         let text = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        AppLog.shared.write("insertText \(text)", level: .debug)
         session.appendText(text)
     }
 
@@ -626,6 +640,7 @@ extension SelectionView: NSTextInputClient {
 
     func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         let text = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        AppLog.shared.write("setMarkedText \(text)", level: .debug)
         session.updateMarkedText(text)
     }
 
@@ -660,7 +675,7 @@ extension SelectionView: NSTextInputClient {
 
     func firstRect(forCharacterRange range: NSRange, actualRange: NSRangePointer?) -> NSRect {
         guard let editing = session.textEditing else { return .zero }
-        let bounds = AnnotationMetrics.textBounds(text: editing.text,
+        let bounds = AnnotationMetrics.textBounds(text: editing.text + editing.marked,
                                                   family: editing.fontFamily,
                                                   size: editing.fontSize,
                                                   bold: false, italic: false,
@@ -673,5 +688,10 @@ extension SelectionView: NSTextInputClient {
 
     func characterIndex(for point: NSPoint) -> Int {
         0
+    }
+
+    /// 候选窗需要与全屏遮罩同层或更高，否则会被遮罩挡住。
+    func windowLevel() -> Int {
+        Int(window?.level.rawValue ?? 0)
     }
 }
