@@ -14,7 +14,7 @@ settings:
     OTHER_CODE_SIGN_FLAGS: "--keychain $(HOME)/Library/Keychains/sniplite-signing.keychain-db"
     ENABLE_HARDENED_RUNTIME: NO
     CURRENT_PROJECT_VERSION: "1"
-    MARKETING_VERSION: "0.4.1"
+    MARKETING_VERSION: "0.4.3"
 
 targets:
   SnipLiteCore:
