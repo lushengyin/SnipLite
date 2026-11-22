@@ -63,6 +63,45 @@ final class ScreenGeometryTests: XCTestCase {
     }
 }
 
+final class DragBoundsTests: XCTestCase {
+    private let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)
+    private let size = CGSize(width: 200, height: 100)
+
+    func testKeepsWindowInsideWhenFullyVisible() {
+        let origin = CGPoint(x: 100, y: 100)
+        XCTAssertEqual(DragBounds.clamp(origin: origin, size: size, within: screen), origin)
+    }
+
+    func testAllowsPartiallyOffscreenButKeepsVisibleEdge() {
+        // 左侧：右边缘留在屏幕内 24pt
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: -500, y: 100), size: size, within: screen).x,
+                       -176)
+        // 右侧：左边缘留在屏幕内 24pt
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: 2000, y: 100), size: size, within: screen).x,
+                       976)
+        // 底部：上边缘留在屏幕内 24pt
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: 100, y: -500), size: size, within: screen).y,
+                       -76)
+        // 顶部：下边缘留在屏幕内 24pt
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: 100, y: 2000), size: size, within: screen).y,
+                       776)
+    }
+
+    func testSmallWindowCannotHideItsEdge() {
+        let tiny = CGSize(width: 10, height: 10)
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: -500, y: -500), size: tiny, within: screen),
+                       CGPoint(x: 0, y: 0))
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: 2000, y: 2000), size: tiny, within: screen),
+                       CGPoint(x: 990, y: 790))
+    }
+
+    func testNegativeOriginScreen() {
+        let external = CGRect(x: -1920, y: 0, width: 1920, height: 1080)
+        XCTAssertEqual(DragBounds.clamp(origin: CGPoint(x: -2200, y: 100), size: size, within: external).x,
+                       -2096)
+    }
+}
+
 final class SelectionModelTests: XCTestCase {
     private let bounds = CGRect(x: 0, y: 0, width: 1000, height: 800)
     private var model: SelectionModel { SelectionModel(bounds: bounds) }

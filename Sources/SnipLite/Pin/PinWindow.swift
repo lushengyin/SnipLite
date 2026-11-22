@@ -237,13 +237,14 @@ extension PinWindow {
         setFrameOrigin(origin)
     }
 
-    func clampOrigin(_ origin: NSPoint) -> NSPoint {
-        let size = frame.size
-        let screens = NSScreen.screens.map(\.frame)
-        guard !screens.isEmpty else { return origin }
-        let union = screens.reduce(CGRect.null) { $0.union($1) }
-        return NSPoint(x: min(max(origin.x, union.minX), union.maxX - size.width),
-                       y: min(max(origin.y, union.minY), union.maxY - size.height))
+    /// 以鼠标所在屏幕为基准做限制：贴图可以大部分移出屏幕，
+    /// 但至少保留一小段可见边缘；跨屏拖动时随鼠标切换到另一块屏幕。
+    func clampOrigin(_ origin: NSPoint, cursor: NSPoint) -> NSPoint {
+        let screen = NSScreen.screens.first { $0.frame.contains(cursor) }?.visibleFrame
+            ?? NSScreen.main?.visibleFrame
+        guard let screen else { return origin }
+        let point = DragBounds.clamp(origin: origin, size: frame.size, within: screen)
+        return NSPoint(x: point.x, y: point.y)
     }
 }
 
@@ -302,7 +303,7 @@ final class PinContentView: NSView {
         let current = NSEvent.mouseLocation
         let delta = NSPoint(x: current.x - dragMouse.x, y: current.y - dragMouse.y)
         let origin = NSPoint(x: dragOrigin.x + delta.x, y: dragOrigin.y + delta.y)
-        pin.setFrameOrigin(pin.clampOrigin(origin))
+        pin.setFrameOrigin(pin.clampOrigin(origin, cursor: current))
     }
 
     override func mouseUp(with event: NSEvent) {
